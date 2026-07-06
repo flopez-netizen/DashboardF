@@ -262,13 +262,13 @@ canvas#pie{display:block}
     </div>
   </div>
 
-  <!-- ② ALERTA CRÍTICOS — TICKER -->
-  <div class="crit-ticker" style="background:var(--ok-dim);border-color:rgba(87,171,90,.4)">
-    <div class="crit-pulse" style="background:var(--ok)"></div>
-    <span class="crit-tag" style="color:var(--ok)">✓ Alta · 0</span>
-    <div class="crit-sep" style="background:rgba(87,171,90,.4)"></div>
+  <!-- ② ALERTA CRÍTICOS — TICKER (dinámico según OPS.alta) -->
+  <div class="crit-ticker" id="ticker-bar">
+    <div class="crit-pulse" id="ticker-pulse"></div>
+    <span class="crit-tag" id="ticker-tag"></span>
+    <div class="crit-sep" id="ticker-sep"></div>
     <div class="ticker-viewport">
-      <span class="ticker-track" id="ticker-track" style="color:var(--ok)">Sin tickets de Alta prioridad — Operación estable — Continuar monitoreo de tickets en seguimiento y escalamiento</span>
+      <span class="ticker-track" id="ticker-track"></span>
     </div>
   </div>
 
@@ -477,11 +477,44 @@ canvas#pie{display:block}
 </div>
 
 <script>
-// ── TICKER ALERTA ALTA ───────────────────────────────────────────────────
+// ── TICKER ALERTA ALTA — dinámico según OPS.alta ────────────────────────
 (function() {
-  const track = document.getElementById('ticker-track');
+  // Configurar apariencia según cantidad de tickets Alta
+  const bar  = document.getElementById('ticker-bar');
+  const pulse= document.getElementById('ticker-pulse');
+  const tag  = document.getElementById('ticker-tag');
+  const sep  = document.getElementById('ticker-sep');
+  const track= document.getElementById('ticker-track');
+
+  // Se ejecuta DESPUÉS de que OPS esté definido (está más abajo en el script)
+  // por eso usamos DOMContentLoaded o simplemente lo inicializamos al final
+  window._initTicker = function(alta) {
+    if (alta > 0) {
+      bar.style.background   = 'var(--crit-dim)';
+      bar.style.borderColor  = 'rgba(229,83,75,.4)';
+      pulse.style.background = 'var(--crit)';
+      pulse.style.animation  = 'pulse 1.4s infinite';
+      tag.style.color        = 'var(--crit)';
+      sep.style.background   = 'rgba(229,83,75,.4)';
+      track.style.color      = 'var(--crit)';
+      tag.textContent  = '⚠ Alta · ' + alta;
+      track.textContent= alta + ' ticket' + (alta>1?'s':'') + ' de Alta prioridad activo' + (alta>1?'s':'') +
+                         ' — Requieren asignación y seguimiento inmediato — Verificar estado de escalamiento con el cliente';
+    } else {
+      bar.style.background   = 'var(--ok-dim)';
+      bar.style.borderColor  = 'rgba(87,171,90,.4)';
+      pulse.style.background = 'var(--ok)';
+      pulse.style.animation  = 'pulse 2.4s infinite';
+      tag.style.color        = 'var(--ok)';
+      sep.style.background   = 'rgba(87,171,90,.4)';
+      track.style.color      = 'var(--ok)';
+      tag.textContent  = '✓ Alta · 0';
+      track.textContent= 'Sin tickets de Alta prioridad — Operación estable — Continuar monitoreo de tickets en seguimiento y escalamiento';
+    }
+    runTicker();
+  };
+
   const viewport = track.parentElement;
-  let paused = false;
 
   function runTicker() {
     const vw = viewport.offsetWidth;
@@ -509,8 +542,7 @@ canvas#pie{display:block}
       });
     });
   }
-  // slight delay so layout is ready
-  setTimeout(runTicker, 600);
+  // _initTicker se llama desde OPS más abajo
 })();
 
 // Pie chart
@@ -578,6 +610,9 @@ const OPS = {
   age15:       33,
   maxAgeDays: 210,
 };
+
+// Inicializar ticker con datos reales
+setTimeout(function(){ window._initTicker(OPS.alta); }, 600);
 
 function generarInsights(d) {
   const items = [];
