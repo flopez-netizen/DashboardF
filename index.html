@@ -1,0 +1,739 @@
+<title>VINET Helpdesk — Monitor Operativo</title>
+<style>
+:root {
+  --bg:#0D1117; --surface:#161B22; --surface-2:#1C2128; --border:#2D333B; --border-s:#444C56;
+  --text:#CDD9E5; --text-2:#768390; --text-3:#545D68; --text-em:#ADBAC7;
+  --ok:#57AB5A; --ok-dim:#1B3A1C; --ok-ring:rgba(87,171,90,.25);
+  --warn:#C69026; --warn-dim:#342B00; --warn-ring:rgba(198,144,38,.25);
+  --crit:#E5534B; --crit-dim:#3C1412; --crit-ring:rgba(229,83,75,.25);
+  --blue:#539BF5; --blue-dim:#112244; --blue-ring:rgba(83,155,245,.2);
+  --purple:#986EE2; --purple-dim:#221744;
+  --teal:#46954A; --teal-dim:#0D2E10;
+  --r:5px; --r-lg:8px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;line-height:1.5;min-height:100vh}
+
+/* ── HEADER ─────────────────────────────── */
+.hdr{display:flex;align-items:center;gap:10px;padding:10px 20px;border-bottom:1px solid var(--border);
+     position:sticky;top:0;z-index:20;background:rgba(13,17,23,.96);backdrop-filter:blur(10px)}
+.hdr-badge{height:24px;padding:0 8px;border-radius:4px;background:var(--blue-dim);
+           border:1px solid var(--blue-ring);font-size:10px;font-weight:700;color:var(--blue);
+           text-transform:uppercase;letter-spacing:.1em;display:flex;align-items:center}
+.hdr-title{font-size:14px;font-weight:600;color:var(--text-em)}
+.hdr-sep{color:var(--border-s);margin:0 4px}
+.hdr-sub{font-size:12px;color:var(--text-2)}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:14px}
+.live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--ok);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.ts{font-size:11px;color:var(--text-3);font-variant-numeric:tabular-nums}
+
+.main{padding:14px 20px;display:flex;flex-direction:column;gap:12px}
+
+/* ── VOLUME STRIP ────────────────────────── */
+.vol-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+           padding:16px 20px;display:flex;align-items:center;gap:24px}
+.vol-total{display:flex;flex-direction:column;gap:1px;flex-shrink:0}
+.vol-n{font-size:52px;font-weight:800;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums;color:var(--text-em)}
+.vol-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3)}
+.vol-divider{width:1px;height:56px;background:var(--border);flex-shrink:0}
+.vol-groups{flex:1;display:flex;flex-direction:column;gap:8px}
+.vol-prop-bar{height:8px;border-radius:4px;overflow:hidden;display:flex;gap:1px}
+.vpb-proceso{background:var(--blue);flex:44}
+.vpb-servicios{background:var(--purple);flex:12}
+.vpb-outsourcing{background:var(--teal);flex:2}
+.vol-chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+      border:1px solid;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
+.chip-n{font-size:15px;font-weight:800}
+.chip-lbl{font-size:10px;font-weight:500;opacity:.8}
+.chip.proceso{background:var(--blue-dim);border-color:var(--blue-ring);color:var(--blue)}
+.chip.servicios{background:var(--purple-dim);border-color:rgba(152,110,226,.25);color:var(--purple)}
+.chip.outsourcing{background:var(--teal-dim);border-color:rgba(70,149,74,.25);color:#46954A;color:#6DB96F}
+.chip.sinasignar{background:var(--crit-dim);border-color:var(--crit-ring);color:var(--crit)}
+
+/* ── CRITICAL TICKER ─────────────────────── */
+.crit-ticker{background:var(--crit-dim);border:1px solid rgba(229,83,75,.4);border-radius:var(--r);
+             padding:5px 12px;display:flex;align-items:center;gap:10px;overflow:hidden}
+.crit-pulse{width:6px;height:6px;border-radius:50%;background:var(--crit);flex-shrink:0;
+            animation:pulse 1.4s infinite}
+.crit-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+          color:var(--crit);flex-shrink:0;white-space:nowrap}
+.crit-sep{width:1px;height:12px;background:rgba(229,83,75,.4);flex-shrink:0}
+.ticker-viewport{flex:1;overflow:hidden;position:relative;height:18px}
+.ticker-track{display:inline-block;white-space:nowrap;position:absolute;top:50%;
+              transform:translateY(-50%);font-size:10px;font-weight:600;color:var(--crit)}
+
+/* ── SLA ─────────────────────────────────── */
+.sla-grid{display:grid;grid-template-columns:200px 1fr;gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 16px}
+.card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.card-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3)}
+.pill{font-size:10px;font-weight:600;padding:2px 8px;border-radius:12px;margin-left:auto}
+.pill-ok{background:var(--ok-dim);color:var(--ok);border:1px solid var(--ok-ring)}
+.pill-warn{background:var(--warn-dim);color:var(--warn);border:1px solid var(--warn-ring)}
+.pill-crit{background:var(--crit-dim);color:var(--crit);border:1px solid var(--crit-ring)}
+.pill-blue{background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue-ring)}
+
+/* SLA ring */
+.sla-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+.ring-container{position:relative;width:110px;height:110px}
+.ring-container svg{width:110px;height:110px}
+.ring-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.ring-pct{font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ok)}
+.ring-sub{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--text-3)}
+.sla-legend{display:flex;gap:14px}
+.sla-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2)}
+.sla-leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* SLA by group */
+.sla-groups{display:flex;flex-direction:column;gap:10px}
+.sla-group-row{display:flex;align-items:center;gap:10px}
+.sla-g-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sla-g-name{font-size:12px;color:var(--text-em);width:90px;flex-shrink:0}
+.sla-g-track{flex:1;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden}
+.sla-g-fill{height:100%;border-radius:3px}
+.sla-g-pct{font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;width:36px;text-align:right;flex-shrink:0}
+.sla-g-n{font-size:10px;color:var(--text-3);width:48px;text-align:right;flex-shrink:0}
+.sla-breach-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-2);padding-top:10px;margin-top:10px;border-top:1px solid var(--border)}
+.breach-chip{background:var(--crit-dim);border:1px solid var(--crit-ring);color:var(--crit);
+             font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;font-variant-numeric:tabular-nums}
+.within-chip{background:var(--ok-dim);border:1px solid var(--ok-ring);color:var(--ok);
+             font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;font-variant-numeric:tabular-nums}
+
+/* ── TICKET AGE ──────────────────────────── */
+.age-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.age-card{border-radius:var(--r-lg);padding:16px;position:relative;overflow:hidden;border:1px solid}
+.age-card.ok{background:var(--ok-dim);border-color:var(--ok-ring)}
+.age-card.warn{background:var(--warn-dim);border-color:var(--warn-ring)}
+.age-card.crit{background:var(--crit-dim);border-color:var(--crit-ring)}
+.age-eyebrow{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
+.age-card.ok .age-eyebrow{color:var(--ok)}
+.age-card.warn .age-eyebrow{color:var(--warn)}
+.age-card.crit .age-eyebrow{color:var(--crit)}
+.age-title{font-size:13px;font-weight:700;color:var(--text-em);margin-bottom:4px;text-wrap:balance}
+.age-range{font-size:10px;color:var(--text-2);margin-bottom:12px}
+.age-n{font-size:42px;font-weight:800;letter-spacing:-1.5px;font-variant-numeric:tabular-nums;line-height:1}
+.age-card.ok .age-n{color:var(--ok)}
+.age-card.warn .age-n{color:var(--warn)}
+.age-card.crit .age-n{color:var(--crit)}
+.age-pct{font-size:11px;color:var(--text-2);margin-top:4px}
+.age-note{font-size:10px;color:var(--text-3);margin-top:8px;font-style:italic}
+
+/* ── PRIORITY + DETAILS ─────────────────── */
+.prio-grid{display:grid;grid-template-columns:500px 1fr;gap:12px}
+.pie-wrap{display:flex;flex-direction:row;align-items:center;gap:16px}
+canvas#pie{display:block}
+.pie-legend{display:flex;flex-direction:column;gap:6px;width:100%}
+.pie-leg-row{display:flex;align-items:center;gap:8px;font-size:12px}
+.pie-leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.pie-leg-lbl{flex:1;color:var(--text-em)}
+.pie-leg-n{font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-em)}
+.pie-leg-pct{color:var(--text-3);font-variant-numeric:tabular-nums;width:36px;text-align:right}
+
+/* Priority detail list */
+.prio-detail{display:flex;flex-direction:column;gap:6px}
+.prio-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r);
+          background:var(--surface-2)}
+.prio-indicator{width:4px;align-self:stretch;border-radius:2px;flex-shrink:0}
+.prio-indicator.alta{background:var(--crit)}
+.prio-indicator.media{background:var(--warn)}
+.prio-indicator.baja{background:var(--blue)}
+.prio-lbl{font-size:12px;color:var(--text-em);flex:1}
+.prio-bar-wrap{width:120px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0}
+.prio-bar-fill{height:100%;border-radius:2px}
+.prio-n{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;width:28px;text-align:right;flex-shrink:0}
+.prio-pct{font-size:10px;color:var(--text-3);width:34px;text-align:right;flex-shrink:0}
+
+/* ── LECTURA OPERATIVA ───────────────────── */
+.ops-tile-wrap{perspective:800px;height:88px}
+.ops-tile{width:100%;height:100%;border-radius:var(--r);padding:11px 13px;
+  display:flex;flex-direction:column;gap:5px;justify-content:center;
+  border:1px solid;transform-origin:center top;
+  backface-visibility:hidden}
+.ops-tile.nivel-crit{background:var(--crit-dim);border-color:rgba(229,83,75,.3)}
+.ops-tile.nivel-warn{background:var(--warn-dim);border-color:rgba(198,144,38,.3)}
+.ops-tile.nivel-ok  {background:var(--ok-dim);  border-color:rgba(87,171,90,.25)}
+.ops-tile.nivel-info{background:var(--blue-dim);border-color:rgba(83,155,245,.2)}
+.ops-tile-title{font-size:11px;font-weight:700;line-height:1.3}
+.ops-tile-body{font-size:10px;color:var(--text-2);line-height:1.5;margin-top:1px}
+.ops-tile-icon{display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.ops-tile-icon svg{flex-shrink:0}
+.ops-dots{display:flex;justify-content:center;gap:4px;margin-top:6px}
+.ops-dot{width:5px;height:5px;border-radius:50%;background:var(--border-s);transition:background .3s}
+.ops-dot.active{background:var(--text-3)}
+@keyframes flip-out{from{transform:rotateX(0deg);opacity:1}to{transform:rotateX(-85deg);opacity:0}}
+@keyframes flip-in {from{transform:rotateX(85deg);opacity:0}to{transform:rotateX(0deg);opacity:1}}
+.ops-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ops-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;
+          border-radius:var(--r);background:var(--surface-2);border-left:3px solid}
+.ops-item.crit{border-color:var(--crit)}
+.ops-item.warn{border-color:var(--warn)}
+.ops-item.ok{border-color:var(--ok)}
+.ops-item.info{border-color:var(--blue)}
+.ops-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.ops-item.crit .ops-title{color:var(--crit)}
+.ops-item.warn .ops-title{color:var(--warn)}
+.ops-item.ok .ops-title{color:var(--ok)}
+.ops-item.info .ops-title{color:var(--blue)}
+.ops-body{font-size:11px;color:var(--text-2);line-height:1.55}
+
+.footer{padding:9px 20px;border-top:1px solid var(--border);font-size:10px;color:var(--text-3);display:flex;gap:16px}
+</style>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-badge">HelpDesk</div>
+  <span class="hdr-title">VINET Helpdesk</span>
+  <span class="hdr-sep">·</span>
+  <span class="hdr-sub">Monitor Operativo</span>
+  <div class="hdr-r">
+    <span class="live"><span class="dot"></span>En vivo</span>
+    <span class="ts" id="sync-ts">—</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ① VOLUMEN DE TICKETS -->
+  <div class="vol-strip">
+    <div class="vol-total">
+      <div class="vol-n">58</div>
+      <div class="vol-lbl">Tickets activos</div>
+    </div>
+    <div class="vol-divider"></div>
+    <div class="vol-groups">
+      <div class="vol-prop-bar">
+        <div class="vpb-proceso"></div>
+        <div class="vpb-servicios"></div>
+        <div class="vpb-outsourcing"></div>
+      </div>
+      <div class="vol-chips">
+        <div class="chip proceso"><span class="chip-n">44</span><span class="chip-lbl">En proceso</span></div>
+        <div class="chip servicios"><span class="chip-n">12</span><span class="chip-lbl">Servicios</span></div>
+        <div class="chip outsourcing"><span class="chip-n">2</span><span class="chip-lbl">Outsourcing</span></div>
+        <div class="chip sinasignar"><span class="chip-n" id="chip-sinasignar">0</span><span class="chip-lbl">Sin asignar</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② ALERTA CRÍTICOS — TICKER -->
+  <div class="crit-ticker">
+    <div class="crit-pulse"></div>
+    <span class="crit-tag">⚠ Alta · 2</span>
+    <div class="crit-sep"></div>
+    <div class="ticker-viewport">
+      <span class="ticker-track" id="ticker-track">2 tickets de Alta prioridad activos — Requieren asignación y seguimiento inmediato — Verificar estado de escalamiento con el cliente</span>
+    </div>
+  </div>
+
+  <!-- ③ ANTIGÜEDAD DE TICKETS -->
+  <div class="card-hdr" style="padding:0 2px">
+    <span class="card-title" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3)">Antigüedad de Tickets</span>
+    <div style="flex:1;height:1px;background:var(--border);margin-left:10px"></div>
+  </div>
+  <div class="age-grid">
+    <div class="age-card ok">
+      <div class="age-eyebrow">Resolución en curso</div>
+      <div class="age-title">Dentro del plazo operativo</div>
+      <div class="age-range">Apertura hace menos de 15 días</div>
+      <div class="age-n">33</div>
+      <div class="age-pct">57% del total activo</div>
+    </div>
+    <div class="age-card warn">
+      <div class="age-eyebrow">Seguimiento activo</div>
+      <div class="age-title">Requieren atención prioritaria</div>
+      <div class="age-range">Entre 15 y 30 días sin cierre</div>
+      <div class="age-n">10</div>
+      <div class="age-pct">16% del total activo</div>
+    </div>
+    <div class="age-card crit">
+      <div class="age-eyebrow">Escalamiento urgente</div>
+      <div class="age-title">Antigüedad crítica</div>
+      <div class="age-range">Más de 30 días sin resolución</div>
+      <div class="age-n">15</div>
+      <div class="age-pct">25% del total activo</div>
+    </div>
+  </div>
+
+  <!-- ④ SLA FTR — Resumen global -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+    <div class="card" style="text-align:center;padding:12px 10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:6px">FTR Global</div>
+      <div style="font-size:32px;font-weight:800;color:var(--ok);letter-spacing:-1px;font-variant-numeric:tabular-nums">85%</div>
+      <div style="font-size:10px;color:var(--text-2);margin-top:3px">49 / 58 tickets</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px 10px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3);margin-bottom:6px">OK ≤ 15 min</div>
+      <div style="font-size:32px;font-weight:800;color:var(--ok);letter-spacing:-1px;font-variant-numeric:tabular-nums">49</div>
+      <div style="font-size:10px;color:var(--text-2);margin-top:3px">Primera respuesta cumplida</div>
+    </div>
+    <div class="card" style="text-align:center;padding:12px 10px;border-color:rgba(229,83,75,.3)">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--crit);margin-bottom:6px">Breach > 15 min</div>
+      <div style="font-size:32px;font-weight:800;color:var(--crit);letter-spacing:-1px;font-variant-numeric:tabular-nums">9</div>
+      <div style="font-size:10px;color:var(--text-2);margin-top:3px">Superaron el tiempo límite</div>
+    </div>
+  </div>
+
+  <!-- ⑤ DISTRIBUCIÓN POR PRIORIDAD + LECTURA OPERATIVA -->
+  <div class="prio-grid">
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Distribución por Prioridad</span>
+      </div>
+      <div class="pie-wrap">
+        <canvas id="pie" width="280" height="280"></canvas>
+        <div class="pie-legend">
+          <div class="pie-leg-row">
+            <div class="pie-leg-dot" style="background:#E5534B"></div>
+            <span class="pie-leg-lbl">Alta</span>
+            <span class="pie-leg-n">2</span>
+            <span class="pie-leg-pct">3.4%</span>
+          </div>
+          <div class="pie-leg-row">
+            <div class="pie-leg-dot" style="background:#C69026"></div>
+            <span class="pie-leg-lbl">Media</span>
+            <span class="pie-leg-n">4</span>
+            <span class="pie-leg-pct">6.9%</span>
+          </div>
+          <div class="pie-leg-row">
+            <div class="pie-leg-dot" style="background:#539BF5"></div>
+            <span class="pie-leg-lbl">Baja</span>
+            <span class="pie-leg-n">52</span>
+            <span class="pie-leg-pct">89.7%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLA Por Tipo y Por Prioridad — apilados verticalmente -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">SLA FTR — Por Tipo de Caso</span>
+          <span class="pill pill-blue">≤ 15 min</span>
+        </div>
+        <div style="perspective:800px">
+          <div id="sla-tipo-tile" style="border-radius:var(--r);transform-origin:center top"></div>
+        </div>
+        <div class="ops-dots" id="sla-tipo-dots" style="margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">SLA FTR — Por Prioridad</span>
+          <span class="pill pill-blue">≤ 15 min</span>
+        </div>
+        <div style="perspective:800px">
+          <div id="sla-prio-tile" style="border-radius:var(--r);transform-origin:center top"></div>
+        </div>
+        <div class="ops-dots" id="sla-prio-dots" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ LECTURA OPERATIVA -->
+  <div class="card">
+    <div class="card-hdr">
+      <span class="card-title">Lectura Operativa</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="ops-tile-wrap"><div class="ops-tile" id="ops-tile-0"></div></div>
+      <div class="ops-tile-wrap"><div class="ops-tile" id="ops-tile-1"></div></div>
+    </div>
+    <div class="ops-dots" id="ops-dots"></div>
+  </div>
+
+  <!-- ⑦ DETALLE DE TICKETS POR ANTIGÜEDAD -->
+  <div class="card-hdr" style="padding:0 2px">
+    <span class="card-title" style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-3)">Detalle de Tickets — Seguimiento y Escalamiento</span>
+    <div style="flex:1;height:1px;background:var(--border);margin-left:10px"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+
+    <!-- Seguimiento Activo (15-30 días) -->
+    <div class="card">
+      <div class="card-hdr">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--warn);flex-shrink:0"></div>
+        <span class="card-title">Seguimiento Activo</span>
+        <span style="font-size:10px;color:var(--text-3);margin-left:2px">15 – 30 días</span>
+        <span class="pill pill-warn" style="margin-left:auto">10 tickets</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:0 8px 6px 0;text-align:left">ID Ticket</th>
+              <th style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:0 8px 6px;text-align:left">Tecnología</th>
+              <th style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:0 0 6px;text-align:right">Días</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-seguimiento">
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12236546831</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ACI</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">27d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12234604526</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">DUO</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">27d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12253816278</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ISE</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">25d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12284824648</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ISE</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">21d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12292917941</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Wireless</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">20d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12292952089</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Firepower</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">20d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12303473560</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ISE</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">19d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12304678116</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Switching</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">19d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12315735172</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Switching</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">18d</td></tr>
+            <tr><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--blue);font-weight:600">12323252159</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Firepower</td><td style="padding:5px 0;font-size:10px;color:var(--warn);text-align:right;font-weight:600">17d</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Escalamiento Urgente (>30 días) -->
+    <div class="card" style="border-color:rgba(229,83,75,.3)">
+      <div class="card-hdr">
+        <div style="width:8px;height:8px;border-radius:50%;background:var(--crit);flex-shrink:0;animation:pulse 1.6s infinite"></div>
+        <span class="card-title">Escalamiento Urgente</span>
+        <span style="font-size:10px;color:var(--text-3);margin-left:2px">más de 30 días</span>
+        <span class="pill pill-crit" style="margin-left:auto">15 tickets</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:0 8px 6px 0;text-align:left">ID Ticket</th>
+              <th style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:0 8px 6px;text-align:left">Tecnología</th>
+              <th style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:0 0 6px;text-align:right">Días</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-escalamiento">
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12128197710</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">UCCX</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">39d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12122541284</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Wireless</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">40d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12105968311</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ACI</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">41d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12088196954</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Cableado</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">45d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12021716559</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ISE</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">52d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12022638622</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Cableado</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">52d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11883295942</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Colaboración</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">68d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11704771402</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Citrix Netscaler</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">89d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11607011731</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Citrix Netscaler</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">102d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11597728133</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Wireless</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">103d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11449442839</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Citrix Netscaler</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">122d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11250973209</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">JumpCloud</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">145d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">11081773869</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ISE</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">164d</td></tr>
+            <tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">12169829652</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">Cableado</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">34d</td></tr>
+            <tr><td style="padding:5px 8px 5px 0;font-size:10px;color:var(--crit);font-weight:600">10724965246</td><td style="padding:5px 8px;font-size:10px;color:var(--text-1)">ISE</td><td style="padding:5px 0;font-size:10px;color:var(--crit);text-align:right;font-weight:600">210d</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>Monday.com · HelpDesk 18397251754 · 58 tickets activos · Jul 6, 2026</span>
+  <span id="footer-ts">Antigüedad calculada por fecha de creación · Sincronizado —</span>
+</div>
+
+<script>
+// ── TICKER ALERTA ALTA ───────────────────────────────────────────────────
+(function() {
+  const track = document.getElementById('ticker-track');
+  const viewport = track.parentElement;
+  let paused = false;
+
+  function runTicker() {
+    const vw = viewport.offsetWidth;
+    const tw = track.offsetWidth;
+    // start just off-screen right
+    track.style.transition = 'none';
+    track.style.left = vw + 'px';
+    // small frame pause so browser applies the start position
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        // slide to center-ish (fully visible left-aligned)
+        const endPos = Math.max(0, (vw - tw) / 2);
+        const travelIn = vw - endPos;
+        const speedPx = 120; // px per second
+        const durationIn = (travelIn / speedPx * 1000) | 0;
+        track.style.transition = `left ${durationIn}ms linear`;
+        track.style.left = endPos + 'px';
+        // after slide-in, pause 10s, then slide out left
+        setTimeout(function() {
+          const durationOut = ((endPos + tw) / speedPx * 1000) | 0;
+          track.style.transition = `left ${durationOut}ms linear`;
+          track.style.left = (-tw) + 'px';
+          setTimeout(runTicker, durationOut + 400);
+        }, durationIn + 10000);
+      });
+    });
+  }
+  // slight delay so layout is ready
+  setTimeout(runTicker, 600);
+})();
+
+// Pie chart
+const canvas = document.getElementById('pie');
+const ctx = canvas.getContext('2d');
+const W = 280, H = 280, cx = W/2, cy = H/2, R = 118, inner = 64;
+// Timestamp dinámico
+(function(){
+  const now = new Date();
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const d = now.getDate();
+  const m = meses[now.getMonth()];
+  const y = now.getFullYear();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ts = `${d} ${m} ${y} · ${hh}:${mm}`;
+  document.getElementById('sync-ts').textContent = ts;
+  document.getElementById('footer-ts').textContent = `Antigüedad calculada por fecha de creación · Sincronizado ${ts}`;
+})();
+
+const slices = [
+  { n: 2,  color: '#E5534B', label: 'Alta'  },
+  { n: 4,  color: '#C69026', label: 'Media' },
+  { n: 52, color: '#539BF5', label: 'Baja'  }
+];
+const total = slices.reduce((s,d) => s + d.n, 0);
+let angle = -Math.PI / 2;
+ctx.clearRect(0, 0, W, H);
+slices.forEach(s => {
+  const sweep = (s.n / total) * 2 * Math.PI;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.arc(cx, cy, R, angle, angle + sweep);
+  ctx.closePath();
+  ctx.fillStyle = s.color;
+  ctx.fill();
+  angle += sweep;
+});
+// Donut hole
+ctx.beginPath();
+ctx.arc(cx, cy, inner, 0, 2 * Math.PI);
+ctx.fillStyle = '#161B22';
+ctx.fill();
+// Center label
+ctx.fillStyle = '#CDD9E5';
+ctx.font = 'bold 30px -apple-system,system-ui,sans-serif';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('58', cx, cy - 9);
+ctx.fillStyle = '#545D68';
+ctx.font = '12px -apple-system,system-ui,sans-serif';
+ctx.fillText('TICKETS', cx, cy + 14);
+
+// ── LECTURA OPERATIVA — TILES ANIMADOS ─────────────────────────────────
+const OPS = {
+  total:       58,
+  alta:         2,
+  media:        4,
+  baja:        52,
+  sinAsignar:   0,
+  ftrBreach:    9,
+  ftrOk:       49,
+  ageCrit:     15,
+  age30:       10,
+  age15:       33,
+  maxAgeDays: 210,
+};
+
+function generarInsights(d) {
+  const items = [];
+  if (d.alta > 0)
+    items.push({ nivel:'crit',
+      titulo: `${d.alta} ticket${d.alta>1?'s':''} Alta prioridad activo${d.alta>1?'s':''}`,
+      cuerpo: `Requieren escalamiento inmediato. Verificar asignación y contacto con cliente.` });
+  if (d.sinAsignar > 0)
+    items.push({ nivel:'crit',
+      titulo: `${d.sinAsignar} ticket${d.sinAsignar>1?'s':''} sin asignar`,
+      cuerpo: `Riesgo directo de breach FTR. Cada minuto corre contra el SLA de primera respuesta.` });
+  if (d.ageCrit > 0) {
+    const ref = d.maxAgeDays >= 90 ? `El más antiguo lleva ${d.maxAgeDays} días.` : `Máx. ${d.maxAgeDays} días.`;
+    items.push({ nivel:'warn',
+      titulo: `${d.ageCrit} ticket${d.ageCrit>1?'s':''} con +30 días sin resolver`,
+      cuerpo: `${ref} Revisar bloqueos de cliente, proveedor o recursos.` });
+  }
+  if (d.ftrBreach > 0) {
+    const pct = Math.round(d.ftrBreach / d.total * 100);
+    items.push({ nivel: pct >= 20 ? 'warn' : 'info',
+      titulo: `${d.ftrBreach} ticket${d.ftrBreach>1?'s':''} en breach FTR (${pct}%)`,
+      cuerpo: `Superaron los 15 min de primera respuesta. Revisar causas raíz.` });
+  }
+  if (d.age30 > 0)
+    items.push({ nivel:'info',
+      titulo: `${d.age30} ticket${d.age30>1?'s':''} en seguimiento (15–30 días)`,
+      cuerpo: `En riesgo de escalar a críticos. Confirmar avance con ingeniero asignado.` });
+  const ftrPct = Math.round(d.ftrOk / d.total * 100);
+  if (ftrPct >= 80)
+    items.push({ nivel:'ok',
+      titulo: `FTR global ${ftrPct}% — por encima del umbral`,
+      cuerpo: `${d.ftrOk}/${d.total} tickets atendidos dentro del SLA de primera respuesta.` });
+  const bajaPct = Math.round(d.baja / d.total * 100);
+  if (bajaPct >= 85)
+    items.push({ nivel:'info',
+      titulo: `${bajaPct}% del backlog es prioridad Baja`,
+      cuerpo: `Validar que ningún ticket haya escalado en urgencia desde su apertura.` });
+  return items;
+}
+
+const titleColor = { crit:'#E5534B', warn:'#C69026', ok:'#57AB5A', info:'#539BF5' };
+const iconSVG = {
+  crit:`<svg width="13" height="13" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#E5534B" stroke-width="1.5"/><path d="M6 3.5v3" stroke="#E5534B" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="8.5" r=".7" fill="#E5534B"/></svg>`,
+  warn:`<svg width="13" height="13" viewBox="0 0 12 12" fill="none"><path d="M6 1.5L11 10.5H1Z" stroke="#C69026" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 5v2.5" stroke="#C69026" stroke-width="1.3" stroke-linecap="round"/><circle cx="6" cy="9" r=".6" fill="#C69026"/></svg>`,
+  ok:  `<svg width="13" height="13" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#57AB5A" stroke-width="1.5"/><path d="M3.5 6l1.8 1.8L8.5 4" stroke="#57AB5A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  info:`<svg width="13" height="13" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#539BF5" stroke-width="1.5"/><path d="M6 5.5v3" stroke="#539BF5" stroke-width="1.4" stroke-linecap="round"/><circle cx="6" cy="3.8" r=".7" fill="#539BF5"/></svg>`,
+};
+
+function renderTile(el, item) {
+  el.className = `ops-tile nivel-${item.nivel}`;
+  el.innerHTML =
+    `<div class="ops-tile-icon">${iconSVG[item.nivel]}</div>` +
+    `<div class="ops-tile-title" style="color:${titleColor[item.nivel]}">${item.titulo}</div>` +
+    `<div class="ops-tile-body">${item.cuerpo}</div>`;
+}
+
+function flipTile(el, nextItem, done) {
+  el.style.animation = 'flip-out .28s ease forwards';
+  el.addEventListener('animationend', function h() {
+    el.removeEventListener('animationend', h);
+    renderTile(el, nextItem);
+    el.style.animation = 'flip-in .28s ease forwards';
+    el.addEventListener('animationend', function h2() {
+      el.removeEventListener('animationend', h2);
+      el.style.animation = '';
+      if (done) done();
+    });
+  });
+}
+
+(function() {
+  const insights = generarInsights(OPS);
+  if (!insights.length) return;
+
+  const t0 = document.getElementById('ops-tile-0');
+  const t1 = document.getElementById('ops-tile-1');
+  const dotsEl = document.getElementById('ops-dots');
+
+  // Dots — one per pair
+  const pairs = Math.ceil(insights.length / 2);
+  for (let i = 0; i < pairs; i++) {
+    const d = document.createElement('div');
+    d.className = 'ops-dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(d);
+  }
+
+  let page = 0;
+
+  function showPage(p, animate) {
+    const idx0 = (p * 2) % insights.length;
+    const idx1 = (p * 2 + 1) % insights.length;
+    const dots = dotsEl.querySelectorAll('.ops-dot');
+    dots.forEach((d, i) => d.classList.toggle('active', i === p % pairs));
+    if (!animate) {
+      renderTile(t0, insights[idx0]);
+      renderTile(t1, insights[idx1]);
+    } else {
+      flipTile(t0, insights[idx0]);
+      flipTile(t1, insights[idx1]);
+    }
+  }
+
+  showPage(0, false);
+
+  setInterval(function() {
+    page = (page + 1) % pairs;
+    showPage(page, true);
+  }, 4500);
+})();
+
+// ── SLA TILES ROTATIVOS ─────────────────────────────────────────────────
+(function() {
+  function pctColor(p) {
+    if (p === 100) return '#57AB5A';
+    if (p >= 80)  return '#539BF5';
+    if (p >= 60)  return '#C69026';
+    return '#E5534B';
+  }
+  function pctBg(p) {
+    if (p === 100) return 'var(--ok-dim)';
+    if (p >= 80)  return 'var(--blue-dim)';
+    if (p >= 60)  return 'var(--warn-dim)';
+    return 'var(--crit-dim)';
+  }
+  function pctBd(p) {
+    if (p === 100) return 'rgba(87,171,90,.25)';
+    if (p >= 80)  return 'rgba(83,155,245,.2)';
+    if (p >= 60)  return 'rgba(198,144,38,.3)';
+    return 'rgba(229,83,75,.3)';
+  }
+
+  function renderSLATile(el, item) {
+    const col = pctColor(item.pct);
+    const bg  = pctBg(item.pct);
+    const bd  = pctBd(item.pct);
+    const breachHTML = item.breach > 0
+      ? `<span style="padding:2px 7px;border-radius:8px;background:var(--crit-dim);border:1px solid var(--crit-ring);color:var(--crit);font-size:10px;font-weight:700">${item.breach} breach</span>`
+      : `<span style="padding:2px 7px;border-radius:8px;background:var(--ok-dim);border:1px solid var(--ok-ring);color:var(--ok);font-size:10px;font-weight:600">100%</span>`;
+    el.style.cssText = `padding:14px;background:${bg};border:1px solid ${bd};border-radius:var(--r)`;
+    el.innerHTML =
+      `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">` +
+        `<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-em)">${item.label}</span>` +
+        `<div style="display:flex;align-items:center;gap:8px">` +
+          `<span style="font-size:22px;font-weight:800;color:${col};font-variant-numeric:tabular-nums;letter-spacing:-1px">${item.pct}%</span>` +
+          breachHTML +
+        `</div>` +
+      `</div>` +
+      `<div style="height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden;margin-bottom:8px">` +
+        `<div style="width:${item.pct}%;height:100%;border-radius:4px;background:${col};transition:width .5s ease"></div>` +
+      `</div>` +
+      `<div style="font-size:10px;color:var(--text-3)">${item.ok} ok · ${item.total} tickets totales</div>`;
+  }
+
+  function buildCarousel(tileEl, dotsEl, items, interval) {
+    dotsEl.innerHTML = '';
+    items.forEach((_, i) => {
+      const d = document.createElement('div');
+      d.className = 'ops-dot' + (i === 0 ? ' active' : '');
+      dotsEl.appendChild(d);
+    });
+    let idx = 0;
+    renderSLATile(tileEl, items[0]);
+
+    setInterval(function() {
+      idx = (idx + 1) % items.length;
+      const dots = dotsEl.querySelectorAll('.ops-dot');
+      dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      tileEl.style.animation = 'flip-out .25s ease forwards';
+      tileEl.addEventListener('animationend', function h() {
+        tileEl.removeEventListener('animationend', h);
+        renderSLATile(tileEl, items[idx]);
+        tileEl.style.animation = 'flip-in .25s ease forwards';
+        tileEl.addEventListener('animationend', function h2() {
+          tileEl.removeEventListener('animationend', h2);
+          tileEl.style.animation = '';
+        });
+      });
+    }, interval);
+  }
+
+  const tipoItems = [
+    { label:'Solic. Servicio', pct:84, ok:43, total:51, breach:8 },
+    { label:'Solic. Soporte',  pct:67, ok:2,  total:3,  breach:1 },
+  ];
+
+  const prioItems = [
+    { label:'Media', pct:75, ok:3,  total:4,  breach:1 },
+    { label:'Baja',  pct:85, ok:44, total:52, breach:8 },
+  ];
+
+  buildCarousel(
+    document.getElementById('sla-tipo-tile'),
+    document.getElementById('sla-tipo-dots'),
+    tipoItems, 3500
+  );
+  buildCarousel(
+    document.getElementById('sla-prio-tile'),
+    document.getElementById('sla-prio-dots'),
+    prioItems, 3000
+  );
+})();
+</script>
