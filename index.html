@@ -84,9 +84,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13
 .vol-divider{width:1px;height:56px;background:var(--border);flex-shrink:0}
 .vol-groups{flex:1;display:flex;flex-direction:column;gap:8px}
 .vol-prop-bar{height:8px;border-radius:4px;overflow:hidden;display:flex;gap:1px}
-.vpb-proceso{background:var(--blue);flex:44}
+.vpb-proceso{background:var(--blue);flex:41}
 .vpb-servicios{background:var(--purple);flex:12}
-.vpb-outsourcing{background:var(--teal);flex:2}
+.vpb-outsourcing{background:var(--teal);flex:5}
 .vol-chips{display:flex;gap:8px;flex-wrap:wrap}
 .chip{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
       border:1px solid;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -254,21 +254,21 @@ canvas#pie{display:block}
         <div class="vpb-outsourcing"></div>
       </div>
       <div class="vol-chips">
-        <div class="chip proceso"><span class="chip-n">44</span><span class="chip-lbl">En proceso</span></div>
+        <div class="chip proceso"><span class="chip-n">41</span><span class="chip-lbl">En proceso</span></div>
         <div class="chip servicios"><span class="chip-n">12</span><span class="chip-lbl">Servicios</span></div>
-        <div class="chip outsourcing"><span class="chip-n">2</span><span class="chip-lbl">Outsourcing</span></div>
+        <div class="chip outsourcing"><span class="chip-n">5</span><span class="chip-lbl">Outsourcing</span></div>
         <div class="chip sinasignar"><span class="chip-n" id="chip-sinasignar">0</span><span class="chip-lbl">Sin asignar</span></div>
       </div>
     </div>
   </div>
 
   <!-- ② ALERTA CRÍTICOS — TICKER -->
-  <div class="crit-ticker">
-    <div class="crit-pulse"></div>
-    <span class="crit-tag">⚠ Alta · 2</span>
-    <div class="crit-sep"></div>
+  <div class="crit-ticker" style="background:var(--ok-dim);border-color:rgba(87,171,90,.4)">
+    <div class="crit-pulse" style="background:var(--ok)"></div>
+    <span class="crit-tag" style="color:var(--ok)">✓ Alta · 0</span>
+    <div class="crit-sep" style="background:rgba(87,171,90,.4)"></div>
     <div class="ticker-viewport">
-      <span class="ticker-track" id="ticker-track">2 tickets de Alta prioridad activos — Requieren asignación y seguimiento inmediato — Verificar estado de escalamiento con el cliente</span>
+      <span class="ticker-track" id="ticker-track" style="color:var(--ok)">Sin tickets de Alta prioridad — Operación estable — Continuar monitoreo de tickets en seguimiento y escalamiento</span>
     </div>
   </div>
 
@@ -332,14 +332,14 @@ canvas#pie{display:block}
           <div class="pie-leg-row">
             <div class="pie-leg-dot" style="background:#E5534B"></div>
             <span class="pie-leg-lbl">Alta</span>
-            <span class="pie-leg-n">2</span>
-            <span class="pie-leg-pct">3.4%</span>
+            <span class="pie-leg-n">0</span>
+            <span class="pie-leg-pct">0%</span>
           </div>
           <div class="pie-leg-row">
             <div class="pie-leg-dot" style="background:#C69026"></div>
             <span class="pie-leg-lbl">Media</span>
-            <span class="pie-leg-n">4</span>
-            <span class="pie-leg-pct">6.9%</span>
+            <span class="pie-leg-n">6</span>
+            <span class="pie-leg-pct">10.3%</span>
           </div>
           <div class="pie-leg-row">
             <div class="pie-leg-dot" style="background:#539BF5"></div>
@@ -532,8 +532,8 @@ const W = 280, H = 280, cx = W/2, cy = H/2, R = 118, inner = 64;
 })();
 
 const slices = [
-  { n: 2,  color: '#E5534B', label: 'Alta'  },
-  { n: 4,  color: '#C69026', label: 'Media' },
+  { n: 0,  color: '#E5534B', label: 'Alta'  },
+  { n: 6,  color: '#C69026', label: 'Media' },
   { n: 52, color: '#539BF5', label: 'Baja'  }
 ];
 const total = slices.reduce((s,d) => s + d.n, 0);
@@ -567,8 +567,8 @@ ctx.fillText('TICKETS', cx, cy + 14);
 // ── LECTURA OPERATIVA — TILES ANIMADOS ─────────────────────────────────
 const OPS = {
   total:       58,
-  alta:         2,
-  media:        4,
+  alta:         0,
+  media:        6,
   baja:        52,
   sinAsignar:   0,
   ftrBreach:    9,
@@ -764,7 +764,7 @@ function flipTile(el, nextItem, done) {
   ];
 
   const prioItems = [
-    { label:'Media', pct:75, ok:3,  total:4,  breach:1 },
+    { label:'Media', pct:83, ok:5,  total:6,  breach:1 },
     { label:'Baja',  pct:85, ok:44, total:52, breach:8 },
   ];
 
