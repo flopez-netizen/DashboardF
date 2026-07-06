@@ -1,4 +1,47 @@
-<title>VINET Helpdesk — Monitor Operativo</title>
+<title>HelpDesk — Monitor Operativo</title>
+<style>
+/* ── LOGIN SCREEN ── */
+#login-screen{position:fixed;inset:0;background:#0D1117;z-index:9999;
+  display:flex;align-items:center;justify-content:center}
+.login-box{background:#161B22;border:1px solid #2D333B;border-radius:10px;
+  padding:40px 48px;display:flex;flex-direction:column;align-items:center;gap:20px;width:320px}
+.login-title{font-size:18px;font-weight:700;color:#CDD9E5;letter-spacing:.02em}
+.login-sub{font-size:11px;color:#545D68;text-transform:uppercase;letter-spacing:.1em;margin-top:-12px}
+.login-input{width:100%;padding:10px 14px;background:#0D1117;border:1px solid #2D333B;
+  border-radius:6px;color:#CDD9E5;font-size:13px;outline:none;font-family:inherit}
+.login-input:focus{border-color:#539BF5}
+.login-btn{width:100%;padding:10px;background:#539BF5;border:none;border-radius:6px;
+  color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.login-btn:hover{background:#6aaaf7}
+.login-err{font-size:11px;color:#E5534B;display:none}
+</style>
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">HelpDesk</div>
+    <div class="login-sub">Monitor Operativo</div>
+    <input class="login-input" type="password" id="login-pwd" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Ingresar</button>
+    <span class="login-err" id="login-err">Contraseña incorrecta</span>
+  </div>
+</div>
+<script>
+function doLogin(){
+  const pwd=document.getElementById('login-pwd').value;
+  if(pwd==='VinetMesade$erv2027*'){
+    document.getElementById('login-screen').style.display='none';
+    sessionStorage.setItem('hd-auth','1');
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('login-pwd').value='';
+    document.getElementById('login-pwd').focus();
+  }
+}
+if(sessionStorage.getItem('hd-auth')==='1'){
+  document.addEventListener('DOMContentLoaded',function(){
+    document.getElementById('login-screen').style.display='none';
+  });
+}
+</script>
 <style>
 :root {
   --bg:#0D1117; --surface:#161B22; --surface-2:#1C2128; --border:#2D333B; --border-s:#444C56;
